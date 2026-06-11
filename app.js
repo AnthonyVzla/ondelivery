@@ -1,5 +1,6 @@
 // 0. DETECTOR DE ERRORES (Solo para pruebas en el celular)
 // Si algo falla, saltará un mensaje en tu pantalla.
+alert("¡El archivo JS sí está cargando!");
 window.onerror = function(mensaje, fuente, linea) {
   alert("Error en el código:\n" + mensaje + "\nLínea: " + linea);
   return true; 
