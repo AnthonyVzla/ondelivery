@@ -2,168 +2,249 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>On Delivery</title>
-  <link rel="manifest" href="manifest.json">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>On Delivery - Panel Operativo</title>
+  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
   <style>
     :root {
-      --rojo: #cc0000;
-      --negro: #1a1a1a;
-      --blanco: #ffffff;
-      --gris: #f4f4f4;
+      --primary-color: #d30000;
+      --dark-color: #111111;
+      --light-bg: #f8f9fa;
     }
-    body {
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0; padding: 0; background-color: var(--gris);
-      color: var(--negro); user-select: none; /* Evita selección de texto */
     }
+
+    body {
+      background-color: var(--light-bg);
+      color: #333;
+    }
+
+    /* Navbar Global */
     header {
-      background-color: var(--negro); color: var(--blanco);
-      padding: 15px; text-align: center; border-bottom: 4px solid var(--rojo);
-      display: flex; justify-content: space-between; align-items: center;
+      background-color: var(--dark-color);
+      color: white;
+      padding: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 4px solid var(--primary-color);
     }
-    .logo { height: 40px; border-radius: 50%; }
-    .container { padding: 20px; max-width: 800px; margin: auto; }
+
+    header img {
+      height: 40px;
+      border-radius: 50%;
+    }
+
+    header h1 {
+      font-size: 1.2rem;
+    }
+
+    /* Sistema de Vistas Dinámicas */
+    .view {
+      display: none;
+      padding: 20px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    /* Tarjetas y Contenedores */
+    .card {
+      background: white;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      border-left: 4px solid var(--primary-color);
+    }
+
+    h2, h3 {
+      margin-bottom: 15px;
+      color: var(--dark-color);
+    }
+
+    /* Formularios e Inputs */
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+
+    /* Botones Estilizados */
     .btn {
-      background-color: var(--rojo); color: var(--blanco);
-      border: none; padding: 10px 15px; border-radius: 5px;
-      cursor: pointer; font-weight: bold; width: 100%; margin: 5px 0;
+      width: 100%;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 12px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-bottom: 10px;
+      transition: background 0.2s;
     }
-    .btn:hover { background-color: #a00000; }
-    .btn-install { background-color: var(--negro); border: 1px solid var(--rojo); }
-    .view { display: none; } /* Ocultar vistas por defecto */
-    .view.active { display: block; }
-    .card { background: var(--blanco); padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 5px solid var(--rojo); }
-    input, select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;}
-    
-    /* Login Screen */
-    #login-view { text-align: center; margin-top: 50px; }
-    #login-view img { height: 120px; border-radius: 50%; margin-bottom: 20px;}
+
+    .btn:hover {
+      background-color: #b00000;
+    }
+
+    .btn-install {
+      background-color: #111111;
+    }
+
+    .btn-install:hover {
+      background-color: #222222;
+    }
+
+    .btn-whatsapp {
+      background-color: #25D366;
+    }
+
+    .btn-whatsapp:hover {
+      background-color: #20ba5a;
+    }
+
+    /* Vista Login Específica */
+    #login-view {
+      text-align: center;
+      padding-top: 50px;
+    }
+
+    #login-view img {
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      margin-bottom: 20px;
+      object-fit: cover;
+    }
+
+    /* Listados de pedidos */
+    .lista-pedidos {
+      margin-top: 15px;
+      background: #fff;
+      border-radius: 6px;
+      padding: 10px;
+    }
   </style>
 </head>
 <body>
 
-  <audio id="audio-notif" src="timbre.mp3" preload="auto"></audio>
-
   <header>
-    <img src="https://i.postimg.cc/GhX8YJCV/Screenshot-20260611-123137-Instagram.jpg" alt="Logo" class="logo">
-    <h2 style="margin:0; font-size: 1.2rem;">On Delivery</h2>
-    <button id="btnInstalar" class="btn btn-install" style="width:auto; display:none;">Descargar App</button>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <img src="https://i.postimg.cc/GhX8YJCV/Screenshot-20260611-123137-Instagram.jpg" alt="Logo">
+      <h1>On Delivery</h1>
+    </div>
   </header>
 
-  <div class="container">
+  <div id="login-view" class="view active">
+    <img src="https://i.postimg.cc/GhX8YJCV/Screenshot-20260611-123137-Instagram.jpg" alt="Logo Central">
+    <h3>Iniciar Sesión</h3>
+    <input type="email" id="email" placeholder="Correo electrónico">
+    <input type="password" id="password" placeholder="Contraseña">
     
-    <div id="login-view" class="view active">
-  <img src="https://i.postimg.cc/GhX8YJCV/Screenshot-20260611-123137-Instagram.jpg" alt="On Delivery Logo">
-  <h3>Iniciar Sesión</h3>
-  <input type="email" id="email" placeholder="Correo electrónico">
-  <input type="password" id="password" placeholder="Contraseña">
-  
-  <button class="btn" id="btn-ingresar">Ingresar</button>
-  <button class="btn btn-install" id="btn-notificaciones">Habilitar Notificaciones (Requerido)</button>
-</div>
-
-    <div id="aliado-view" class="view">
-      <h3>Panel Aliado Comercial</h3>
-      <div class="card">
-        <h4>1. Pedidos Activos</h4>
-        <button class="btn" onclick="abrirFormularioPedido()">Solicitar Motorizado</button>
-        <button class="btn btn-install" onclick="solicitarCosto()">Solicitar costo del delivery</button>
-        
-        <div id="form-solicitud" style="display:none; margin-top:15px; border-top:1px solid #ccc; padding-top:15px;">
-          <input type="text" id="p_nombre" placeholder="Nombre de quien recibe">
-          <input type="text" id="p_tel" placeholder="Teléfono">
-          <input type="text" id="p_sector" placeholder="Sector">
-          <input type="text" id="p_ref" placeholder="Punto de referencia">
-          <input type="url" id="p_maps" placeholder="URL Google Maps">
-          <button class="btn btn-install" onclick="cargarZonasAsignadas()">Ver Zonas y Costos</button>
-          <select id="p_zona" style="display:none;"></select>
-          <button class="btn" onclick="enviarPedido()">Solicitar</button>
-        </div>
-      </div>
-      <div class="card"><h4>2. Pedidos Aceptados y En camino</h4><div id="aliado-en-camino"></div></div>
-      <div class="card"><h4>3. Pedidos Finalizados</h4><div id="aliado-finalizados"></div></div>
-    </div>
-
-    <div id="motorizado-view" class="view">
-      <h3>Panel Motorizado</h3>
-      <div class="card"><h4>Pedido Asignado / En espera</h4><div id="moto-asignado"></div></div>
-      <div class="card"><h4>Entregas Realizadas</h4><div id="moto-historial"></div></div>
-    </div>
-
-    <div id="supervisor-view" class="view">
-      <h3>Panel Supervisor</h3>
-      <div class="card"><h4>Pedidos Activos (Sin Asignar)</h4><div id="sup-activos"></div></div>
-      <div class="card"><h4>Pedidos en Camino</h4><div id="sup-camino"></div></div>
-      <div class="card"><h4>Mis Pedidos Asignados</h4><div id="sup-mis-asignados"></div></div>
-    </div>
-
-    <div id="admin-view" class="view">
-      <h3>Panel Master Admin</h3>
-      <div class="card"><h4>Gestión de Motorizados</h4><button class="btn">Administrar Motorizados</button></div>
-      <div class="card"><h4>Tabulador de Precios</h4><button class="btn">Configurar Zonas</button></div>
-      <div class="card"><h4>Gestión de Aliados</h4><button class="btn">Administrar Aliados</button></div>
-      <div class="card"><h4>Todos los Pedidos Entregados</h4><button class="btn">Descargar Excel</button></div>
-    </div>
-
+    <button class="btn" id="btn-ingresar">Ingresar</button>
+    <button class="btn btn-install" id="btn-notificaciones">Habilitar Notificaciones (Requerido)</button>
   </div>
 
-  <script src="app.js"></script>
+  <div id="aliado-view" class="view">
+    <h2>Panel de Aliado Comercial</h2>
+    <button class="btn" onclick="abrirFormularioPedido()">+ Solicitar Nuevo Delivery</button>
+    
+    <div id="form-solicitud" class="card" style="display: none; margin-top: 15px;">
+      <h3>Datos de Entrega</h3>
+      <input type="text" id="p_nombre" placeholder="Nombre del Cliente Final">
+      <input type="tel" id="p_tel" placeholder="Teléfono del Cliente">
+      <input type="text" id="p_sector" placeholder="Sector / Urbanización">
+      <textarea id="p_ref" placeholder="Punto de referencia de la dirección"></textarea>
+      <input type="url" id="p_maps" placeholder="Enlace de Ubicación (Google Maps / GPS)">
+      
+      <label for="p_zona" style="font-weight: bold; display: block; margin-bottom: 5px;">Zona de Distribución:</label>
+      <select id="p_zona" style="display: none;"></select>
+      
+      <button class="btn" onclick="enviarPedido()">Confirmar y Lanzar Orden</button>
+      <button class="btn btn-whatsapp" onclick="solicitarCosto()">Consultar Tarifa Excedente (WhatsApp)</button>
+    </div>
+
+    <h3 style="margin-top: 25px;">Tus Despachos de Hoy</h3>
+    <div class="card">
+      <h4>En Curso / Buscando Conductor</h4>
+      <div id="aliado-en-camino" class="lista-pedidos"><em>No hay envíos activos.</em></div>
+    </div>
+
+    <div class="card">
+      <h4>Completados con Éxito</h4>
+      <div id="aliado-finalizados" class="lista-pedidos"><em>No registras entregas hoy.</em></div>
+    </div>
+  </div>
+
+  <div id="supervisor-view" class="view">
+    <h2>Control de Tráfico y Rutas</h2>
+    
+    <div class="card">
+      <h3>Pedidos Entrantes (Sin Conductor asignado)</h3>
+      <div id="sup-activos"><em>Bandeja vacía. Todo controlado.</em></div>
+    </div>
+
+    <div class="card">
+      <h3>Monitoreo de Envíos en Ruta</h3>
+      <div id="sup-camino"><em>No hay unidades movilizando pedidos en este instante.</em></div>
+    </div>
+  </div>
+
+  <div id="motorizado-view" class="view">
+    <h2>Panel de Conductor</h2>
+    
+    <div class="card" style="background: #fffbe6; border-left-color: #ffc107;">
+      <h3>Tu Pedido Asignado</h3>
+      <div id="moto-asignado"><em>Sin rutas asignadas por el momento. ¡Mantente atento al timbre!</em></div>
+    </div>
+
+    <div class="card">
+      <h3>Tu Historial de Entregas (Hoy)</h3>
+      <div id="moto-historial"><em>Aún no has completado entregas en este turno.</em></div>
+    </div>
+  </div>
+
+  <div id="admin-view" class="view">
+    <h2>Consola de Administración Master</h2>
+    <p style="margin-bottom: 15px; color:#666;">Acceso total a logs del sistema y auditoría financiera de rutas.</p>
+    
+    <div class="card">
+      <h3>Reportes Operativos</h3>
+      <button class="btn btn-install" onclick="alert('Cargando base de datos completa para exportación...'); supabase.from('pedidos').select('*').then(({data}) => descargarReporteExcel(data))">
+        Descargar Reporte del Día (.CSV de Excel)
+      </button>
+    </div>
+  </div>
+
+  <audio id="audio-notif" src="./timbre.mp3" preload="auto"></audio>
 
   <script>
-    // 1. Bloqueo básico de inspección de código (Seguridad requerida)
-    document.addEventListener('contextmenu', event => event.preventDefault()); // Bloquea clic derecho
-    document.onkeydown = function(e) {
-      if(event.keyCode == 123) { return false; } // Bloquea F12
-      if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) { return false; } // Ctrl+Shift+I
-      if(e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) { return false; } // Ctrl+Shift+C
-      if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) { return false; } // Ctrl+Shift+J
-      if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) { return false; } // Ctrl+U (Ver código fuente)
-    }
-
-    // 2. Lógica PWA e Instalación manual
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      const installBtn = document.getElementById('btnInstalar');
-      installBtn.style.display = 'block';
-      
-      installBtn.addEventListener('click', () => {
-        installBtn.style.display = 'none';
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then((choiceResult) => {
-          deferredPrompt = null;
+    // Conexión puente para que las alertas llamen de forma limpia al reproductor de audio nativo de Android Chrome
+    function reproducirTimbre() {
+      const audio = document.getElementById('audio-notif');
+      if (audio) {
+        audio.play().catch(e => {
+          console.log("Interacción de usuario requerida para activar sonido: ", e);
         });
-      });
-    });
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').then(() => {
-        console.log('Service Worker Registrado');
-      });
+      }
     }
+  </script>
 
-    // 3. Notificaciones y Sonido
-    function solicitarPermisoNotificaciones() {
-      Notification.requestPermission().then(permission => {
-        if(permission === 'granted') {
-          alert('Notificaciones habilitadas correctamente.');
-          // Reproducir el sonido en silencio para desbloquear el AudioContext del navegador
-          document.getElementById('audio-notif').play().catch(()=>{}).then(()=>{
-            document.getElementById('audio-notif').pause();
-            document.getElementById('audio-notif').currentTime = 0;
-          });
-        }
-      });
-    }
-
-      function reproducirTimbre() {
-    document.getElementById('audio-notif').play();
-  }
-</script>
-
-<script type="module" src="./app.js"></script>
+  <script type="module" src="./app.js"></script>
 </body>
 </html>
