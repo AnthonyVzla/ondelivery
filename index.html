@@ -220,13 +220,37 @@
   </div>
 
   <div id="admin-view" class="view">
-    <h2>Consola de Administración Master</h2>
-    <p style="margin-bottom: 15px; color:#666;">Acceso total a logs del sistema y auditoría financiera de rutas.</p>
+    <h2>Panel de Administración Master</h2>
+    <p style="margin-bottom: 15px; color:#666;">Gestión de plataforma, usuarios y reportes.</p>
     
+    <div class="card">
+      <h3>Registrar Nuevo Usuario</h3>
+      <input type="text" id="admin_nuevo_nombre" placeholder="Nombre completo o Razón Social">
+      <input type="email" id="admin_nuevo_correo" placeholder="Correo electrónico (Para login)">
+      <input type="text" id="admin_nuevo_pass" placeholder="Contraseña temporal">
+      <input type="tel" id="admin_nuevo_tel" placeholder="Teléfono o WhatsApp">
+      
+      <label style="font-weight: bold; display: block; margin-bottom: 5px;">Seleccionar Rol:</label>
+      <select id="admin_nuevo_rol">
+        <option value="aliado">Aliado Comercial</option>
+        <option value="motorizado">Motorizado / Conductor</option>
+        <option value="supervisor">Supervisor de Logística</option>
+      </select>
+
+      <button class="btn" onclick="crearNuevoUsuario()">Registrar Usuario en Base de Datos</button>
+    </div>
+
+    <div class="card">
+      <h3>Crear Zona de Delivery</h3>
+      <input type="text" id="admin_zona_nombre" placeholder="Nombre de la Zona (Ej: Centro, San Jacinto)">
+      <input type="number" id="admin_zona_precio" placeholder="Precio Base Promedio ($)" step="0.5">
+      <button class="btn btn-whatsapp" onclick="crearZonaTabulador()">Guardar Zona</button>
+    </div>
+
     <div class="card">
       <h3>Reportes Operativos</h3>
       <button class="btn btn-install" onclick="alert('Cargando base de datos completa para exportación...'); supabase.from('pedidos').select('*').then(({data}) => descargarReporteExcel(data))">
-        Descargar Reporte del Día (.CSV de Excel)
+        Descargar Reporte del Día (.CSV)
       </button>
     </div>
   </div>
@@ -234,12 +258,12 @@
   <audio id="audio-notif" src="./timbre.mp3" preload="auto"></audio>
 
   <script>
-    // Conexión puente para que las alertas llamen de forma limpia al reproductor de audio nativo de Android Chrome
+    // Conexión puente para que las alertas llamen de forma limpia al reproductor de audio
     function reproducirTimbre() {
       const audio = document.getElementById('audio-notif');
       if (audio) {
         audio.play().catch(e => {
-          console.log("Interacción de usuario requerida para activar sonido: ", e);
+          console.log("Interacción requerida para sonido: ", e);
         });
       }
     }
