@@ -1,12 +1,16 @@
 {
-  "name": "On Delivery",
+  "name": "On Delivery PWA",
   "short_name": "OnDelivery",
-  "description": "Plataforma logística de On Delivery",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#1a1a1a",
-  "theme_color": "#cc0000",
+  "background_color": "#f8f9fa",
+  "theme_color": "#d30000",
   "icons": [
+    {
+      "src": "https://i.postimg.cc/GhX8YJCV/Screenshot-20260611-123137-Instagram.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
     {
       "src": "https://i.postimg.cc/GhX8YJCV/Screenshot-20260611-123137-Instagram.jpg",
       "sizes": "512x512",
