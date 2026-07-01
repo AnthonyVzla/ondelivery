@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#003366" />
+  <link rel="manifest" href="manifest.json" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <title>On Delivery</title>
+  <meta name="description" content="On Delivery - App de envíos" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header>
+      <div style="display:flex; align-items:center; gap:12px">
+        <img src="https://i.postimg.cc/GhX8YJCV/Screenshot-20260611-123137-Instagram.jpg" alt="logo" style="height:40px; border-radius:8px; object-fit:cover;" />
+        <h1>On Delivery</h1>
+        <div style="margin-left:auto">
+          <button id="master-shortcut" class="secondary">Portal Master</button>
+        </div>
+      </div>
+    </header>
+    <main id="app">
+      <div id="loader" class="card">
+        <h2>Cargando...</h2>
+      </div>
+    </main>
+    <footer>Instala la app desde tu navegador móvil para usarla sin conexión.</footer>
+  </div>
+
+  <div id="install-toast" class="card hidden" style="position: fixed; bottom: 20px; left: 20px; right: 20px; z-index: 99;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+      <div>
+        <strong>Instalar Delivery PWA</strong>
+        <p>Agrega la app a tu dispositivo para un acceso rápido.</p>
+      </div>
+      <button id="install-button">Instalar</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

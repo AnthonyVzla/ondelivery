@@ -1,0 +1,37 @@
+/* Palette: blanco, negro y rojo */
+* { box-sizing: border-box; }
+:root{
+  --bg: #ffffff;
+  --text: #0b0b0b;
+  --muted: #777;
+  --accent: #c91414; /* rojo */
+  --card-shadow: rgba(11,11,11,0.06);
+}
+body{
+  margin:0;
+  font-family: 'Poppins', system-ui, -apple-system, 'Helvetica Neue', Arial;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing:antialiased;
+}
+.app-shell{ max-width:900px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; }
+header{ background:linear-gradient(0deg, var(--bg), var(--bg)); color:var(--text); padding:14px 16px; border-bottom:2px solid #eee; position:sticky; top:0; z-index:10; }
+header h1{ margin:0; font-size:1.25rem; letter-spacing:0.6px; color:var(--text); }
+main{ flex:1; padding:14px; }
+.card{ background: #fff; border-radius:12px; box-shadow: 0 8px 20px var(--card-shadow); padding:14px; margin-bottom:14px; border:1px solid #f0f0f0 }
+.form-grid{ display:grid; gap:10px; }
+.button-group{ display:grid; gap:10px; grid-template-columns: repeat(2, 1fr); }
+button, select, input, textarea, a.button{ width:100%; border-radius:10px; padding:10px; font-size:0.95rem; border:1px solid #e6e6e6; }
+button{ background:var(--text); color:var(--bg); border:none; cursor:pointer; }
+button.secondary, a.button.secondary{ background:transparent; color:var(--text); border:1px solid #ddd }
+button:active{ transform:translateY(1px); }
+.hidden{ display:none !important }
+.order-card{ border:1px solid #f0f0f0; padding:12px; border-radius:10px; margin-bottom:10px }
+.order-card strong{ display:block; margin-bottom:6px }
+footer{ padding:12px; text-align:center; color:var(--muted); font-size:0.9rem }
+@media (max-width:640px){ .button-group{ grid-template-columns:1fr 1fr } .card{ padding:12px } }
+
+/* Accent utilities */
+.accent{ color:var(--accent) }
+.btn-danger{ background:var(--accent); color:#fff }
+.small{ font-size:0.85rem }
