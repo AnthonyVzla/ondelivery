@@ -37,19 +37,19 @@ async function initSupabase() {
       SUPA.from('orders').select('*')
     ]);
     if (uRes.error || zRes.error || oRes.error) throw new Error('Supabase fetch error');
-    if (uRes.data && uRes.data.length) DATA.users = uRes.data;
+    if (uRes.data && uRes.data.length) DATA.users = uRes.data.map(normalizeUser);
     if (zRes.data && zRes.data.length) DATA.zones = zRes.data;
-    if (oRes.data && oRes.data.length) DATA.orders = oRes.data;
+    if (oRes.data && oRes.data.length) DATA.orders = oRes.data.map(normalizeOrder);
 
     // realtime subscriptions for orders
     try {
       SUPA.from('orders').on('INSERT', payload => {
-        DATA.orders.push(payload.new);
+        DATA.orders.push(normalizeOrder(payload.new));
         playNotificationSound();
       }).subscribe();
       SUPA.from('orders').on('UPDATE', payload => {
-        const idx = DATA.orders.findIndex(o=>o.id===payload.new.id);
-        if (idx!==-1) DATA.orders[idx] = payload.new;
+        const idx = DATA.orders.findIndex(o => o.id === payload.new.id);
+        if (idx !== -1) DATA.orders[idx] = normalizeOrder(payload.new);
       }).subscribe();
     } catch (e) { console.warn('Realtime subscription failed', e); }
 
@@ -60,16 +60,59 @@ async function initSupabase() {
   }
 }
 
+function normalizeUser(user) {
+  return {
+    ...user,
+    commerceLocationUrl: user.commerceLocationUrl || user.commercelocationurl || null,
+    profitPercent: user.profitPercent ?? user.profitpercent ?? 0,
+    assignedAliado: user.assignedAliado || user.assignedaliado || null,
+    profilePhoto: user.profilePhoto || user.profilephoto || null,
+    documents: user.documents || user.documents || null,
+    active: user.active ?? false,
+  };
+}
+
+function normalizeOrder(order) {
+  return {
+    ...order,
+    aliadoId: order.aliadoId || order.aliadoid || null,
+    pickupName: order.pickupName || order.pickupname || '',
+    pickupPhone: order.pickupPhone || order.pickupphone || '',
+    pickupLocationUrl: order.pickupLocationUrl || order.pickuplocationurl || '',
+    receiverName: order.receiverName || order.receivername || '',
+    receiverPhone: order.receiverPhone || order.receiverphone || '',
+    sector: order.sector || '',
+    locationUrl: order.locationUrl || order.locationurl || '',
+    description: order.description || '',
+    urgency: order.urgency || '',
+    zone: order.zone || '',
+    price: Number(order.price) || 0,
+    status: order.status || 'pending',
+    assignedToId: order.assignedToId || order.assignedtoid || null,
+    assignedToName: order.assignedToName || order.assignedtoname || null,
+    canceledBy: order.canceledBy || order.canceledby || null,
+    createdAt: order.createdAt || order.createdat || new Date().toISOString(),
+    updatedAt: order.updatedAt || order.updatedat || null,
+    completedAt: order.completedAt || order.completedat || null,
+  };
+}
+
+function normalizeData(data) {
+  data.users = data.users.map(normalizeUser);
+  data.orders = data.orders.map(normalizeOrder);
+  return data;
+}
+
 function saveData(data) {
-  localStorage.setItem('deliveryData', JSON.stringify(data));
-  DATA = data;
+  DATA = normalizeData(data);
+  localStorage.setItem('deliveryData', JSON.stringify(DATA));
   // push changes to Supabase in background if available
   if (SUPA) {
     (async () => {
       try {
-        await SUPA.from('users').upsert(data.users, { onConflict: ['id'] });
-        await SUPA.from('zones').upsert(data.zones, { onConflict: ['name'] });
-        await SUPA.from('orders').upsert(data.orders, { onConflict: ['id'] });
+        await SUPA.from('users').upsert(DATA.users, { onConflict: ['id'] });
+        await SUPA.from('zones').upsert(DATA.zones, { onConflict: ['name'] });
+        await SUPA.from('orders').upsert(DATA.orders, { onConflict: ['id'] });
       } catch (e) { console.error('Error sincronizando con Supabase', e); }
     })();
   }
@@ -80,6 +123,7 @@ function loadData() {
     DATA = JSON.parse(JSON.stringify(DEFAULT_DATA));
     saveData(DATA);
   }
+  normalizeData(DATA);
   return DATA;
 }
 
@@ -90,7 +134,7 @@ function setCurrentUser(user) {
 function updateUserInData(data, user) {
   const idx = data.users.findIndex(u => u.id === user.id);
   if (idx !== -1) {
-    data.users[idx] = { ...data.users[idx], ...user };
+    data.users[idx] = normalizeUser({ ...data.users[idx], ...user });
     saveData(data);
     setCurrentUser(data.users[idx]);
     return data.users[idx];
@@ -100,6 +144,12 @@ function updateUserInData(data, user) {
 
 function formatCurrency(value) {
   return `${value.toFixed(2)} USD`;
+}
+
+function formatMapUrl(value) {
+  if (!value) return '#';
+  if (value.startsWith('http://') || value.startsWith('https://')) return value;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(value)}`;
 }
 
 function formatDate(dateString) {
@@ -257,7 +307,7 @@ function renderAliadoView(user, data, orders) {
   }
 
   document.getElementById('pending-orders-btn').addEventListener('click', () => {
-    const pendingOrders = orders.filter(order => order.aliadoId === user.id && order.status === 'accepted');
+    const pendingOrders = orders.filter(order => order.aliadoId === user.id && ['accepted','on-the-way'].includes(order.status));
     showSection(renderOrderList('Pedidos pendientes', pendingOrders, true));
   });
   document.getElementById('completed-orders-btn').addEventListener('click', () => {
@@ -283,10 +333,10 @@ function renderOrderList(title, list, showStatus) {
       <h3>${title}</h3>
       ${list.map(order => `
         <div class="order-card">
-          <strong>${order.receiverName}</strong>
-          <div>Teléfono: ${order.receiverPhone}</div>
+          <strong>${order.receiverName || 'Cliente'}</strong>
+          <div>Teléfono: ${order.receiverPhone || 'Sin teléfono'}</div>
           <div>Sector: ${order.sector}</div>
-          <div>Ubicación: <a href="${order.locationUrl}" target="_blank">Ver mapa</a></div>
+          <div>Ubicación: <a href="${formatMapUrl(order.locationUrl)}" target="_blank">Ver mapa</a></div>
           <div>Zona: ${order.zone}</div>
           <div>Delivery: ${order.price.toFixed(2)} USD</div>
           <div>Urgencia: ${order.urgency}</div>
@@ -301,13 +351,16 @@ function renderOrderList(title, list, showStatus) {
 function renderDeliveryForm(user, zonePrice) {
   const zoneName = user.zone || 'Sin zona asignada';
   const priceText = zonePrice ? `${zonePrice.price} USD` : 'Zone sin precio';
+  const commerceUrl = user.commerceLocationUrl || user.commercelocationurl || '';
   return `
     <div class="card">
       <h3>Solicitar delivery</h3>
+      <div class="card" style="padding:12px; margin-bottom:16px; background:#fbfbfb; border:1px solid #eee;">
+        <strong>Comercio:</strong> ${user.name}<br>
+        <strong>Teléfono comercio:</strong> ${user.phone}<br>
+        <strong>Ubicación comercio:</strong> ${commerceUrl ? `<a href="${formatMapUrl(commerceUrl)}" target="_blank">Ver en mapa</a>` : 'No disponible'}
+      </div>
       <form id="delivery-form" class="form-grid">
-        <label>Nombre del comercio <input type="text" name="pickupName" required></label>
-        <label>Teléfono del comercio <input type="tel" name="pickupPhone" required></label>
-        <label>Ubicación GPS comercio (URL) <input type="url" name="pickupLocationUrl" required placeholder="https://maps.app.goo.gl/..." ></label>
         <label>Nombre quien recibe <input type="text" name="receiverName" required></label>
         <label>Teléfono <input type="tel" name="receiverPhone" required></label>
         <label>Sector de entrega <input type="text" name="sector" required></label>
@@ -359,14 +412,18 @@ function attachAliadoEvents(user, data) {
   if (form) {
     form.addEventListener('submit', event => {
       event.preventDefault();
+      const commerceUrl = user.commerceLocationUrl || user.commercelocationurl || '';
+      if (!commerceUrl) {
+        alert('Falta la ubicación del comercio en el perfil del aliado. Por favor actualiza el comercio desde Master.');
+        return;
+      }
       const formData = new FormData(form);
-      const pickupUrl = formData.get('pickupLocationUrl') || user.commerceLocationUrl || '';
       const newOrder = {
         id: Date.now().toString(),
         aliadoId: user.id,
-        pickupName: formData.get('pickupName'),
-        pickupPhone: formData.get('pickupPhone'),
-        pickupLocationUrl: pickupUrl,
+        pickupName: user.name,
+        pickupPhone: user.phone,
+        pickupLocationUrl: commerceUrl,
         receiverName: formData.get('receiverName'),
         receiverPhone: formData.get('receiverPhone'),
         sector: formData.get('sector'),
@@ -379,9 +436,11 @@ function attachAliadoEvents(user, data) {
         assignedToId: null,
         assignedToName: null,
         canceledBy: null,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        updatedAt: null,
+        completedAt: null
       };
-      data.orders.push(newOrder);
+      data.orders.push(normalizeOrder(newOrder));
       saveData(data);
       alert('Pedido enviado. Espera la asignación del motorizado.');
       renderDashboard(user);
@@ -446,11 +505,11 @@ function renderMotorizadoAvailableOrders(user, data) {
       ${!user.active ? '<p>Activa tu perfil para recibir pedidos. No podrás aceptar pedidos mientras estás Off.</p>' : ''}
       ${available.length === 0 ? '<p>No hay pedidos disponibles.</p>' : available.map(order => `
         <div class="order-card">
-          <strong>${order.receiverName}</strong>
-          <div>Cliente: ${order.receiverName}</div>
-          <div>Teléfono: ${order.receiverPhone}</div>
-          <div>Origen: <a href="${order.pickupLocationUrl}" target="_blank">Ver comercio</a></div>
-          <div>Destino: <a href="${order.locationUrl}" target="_blank">Ver cliente</a></div>
+          <strong>${order.receiverName || 'Cliente'}</strong>
+          <div>Cliente: ${order.receiverName || 'Sin nombre'}</div>
+          <div>Teléfono: ${order.receiverPhone || 'Sin teléfono'}</div>
+          <div>Origen: <a href="${formatMapUrl(order.pickupLocationUrl)}" target="_blank">Ver comercio</a></div>
+          <div>Destino: <a href="${formatMapUrl(order.locationUrl)}" target="_blank">Ver cliente</a></div>
           <div>Costo total: ${formatCurrency(order.price)}</div>
           <div>Urgencia: ${order.urgency}</div>
           <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
@@ -464,23 +523,24 @@ function renderMotorizadoAvailableOrders(user, data) {
 }
 
 function renderMotorizadoAcceptedOrders(user, data) {
-  const accepted = data.orders.filter(order => order.assignedToId === user.id && order.status === 'accepted');
+  const accepted = data.orders.filter(order => order.assignedToId === user.id && ['accepted','on-the-way'].includes(order.status));
   if (accepted.length === 0) {
-    return `<div class="card"><h3>Pedidos aceptados</h3><p>No tienes pedidos en curso.</p></div>`;
+    return `<div class="card"><h3>Pedidos en curso</h3><p>No tienes pedidos en curso.</p></div>`;
   }
   return `
     <div class="card">
-      <h3>Pedidos aceptados</h3>
+      <h3>Pedidos en curso</h3>
       ${accepted.map(order => `
         <div class="order-card">
-          <strong>${order.receiverName}</strong>
-          <div>Origen: <a href="${order.pickupLocationUrl}" target="_blank">Comercio</a></div>
-          <div>Destino: <a href="${order.locationUrl}" target="_blank">Cliente</a></div>
-          <div>Cliente: ${order.receiverName} - ${order.receiverPhone}</div>
+          <strong>${order.receiverName || 'Cliente'}</strong>
+          <div>Origen: <a href="${formatMapUrl(order.pickupLocationUrl)}" target="_blank">Comercio</a></div>
+          <div>Destino: <a href="${formatMapUrl(order.locationUrl)}" target="_blank">Cliente</a></div>
+          <div>Cliente: ${order.receiverName || 'Sin nombre'} - ${order.receiverPhone || 'Sin teléfono'}</div>
           <div>Costo total: ${formatCurrency(order.price)}</div>
           <div>Urgencia: ${order.urgency}</div>
+          <div>Estado: <strong>${order.status}</strong></div>
           <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-            <button class="secondary order-on-the-way" data-id="${order.id}">Pedido en camino</button>
+            ${order.status === 'accepted' ? `<button class="secondary order-on-the-way" data-id="${order.id}">Pedido en camino</button>` : ''}
             <button class="secondary order-delivered" data-id="${order.id}">Pedido entregado</button>
           </div>
         </div>
@@ -500,7 +560,7 @@ function renderMotorizadoCompletedOrders(user, data) {
       ${completed.map(order => `
         <div class="order-card">
           <strong>${order.receiverName}</strong>
-          <div>Destino: <a href="${order.locationUrl}" target="_blank">Cliente</a></div>
+          <div>Destino: <a href="${formatMapUrl(order.locationUrl)}" target="_blank">Cliente</a></div>
           <div>Costo total: ${formatCurrency(order.price)}</div>
           <div>Finalizado el: ${formatDate(order.completedAt || order.updatedAt || order.createdAt)}</div>
         </div>
@@ -628,11 +688,11 @@ function ordersToTableHtml(list) {
       <td>${o.id}</td>
       <td>${o.pickupName || ''}</td>
       <td>${o.pickupPhone || ''}</td>
-      <td><a href="${o.pickupLocationUrl || '#'}" target="_blank">mapa</a></td>
+      <td><a href="${formatMapUrl(o.pickupLocationUrl)}" target="_blank">mapa</a></td>
       <td>${o.receiverName || ''}</td>
       <td>${o.receiverPhone || ''}</td>
       <td>${o.sector || ''}</td>
-      <td><a href="${o.locationUrl || '#'}" target="_blank">mapa</a></td>
+      <td><a href="${formatMapUrl(o.locationUrl)}" target="_blank">mapa</a></td>
       <td>${o.zone || ''}</td>
       <td>${formatCurrency(o.price || 0)}</td>
       <td>${o.urgency || ''}</td>
